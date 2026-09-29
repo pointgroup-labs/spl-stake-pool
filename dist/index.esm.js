@@ -835,6 +835,24 @@ function newStakeAccount(feePayer, instructions, lamports) {
     }));
     return stakeReceiverKeypair;
 }
+/**
+ * Like `newStakeAccount`, but derives the address from `base` with a random seed,
+ * so the only required signer is `base` itself (no ephemeral keypair).
+ */
+async function newStakeAccountWithSeed(base, instructions, lamports) {
+    const seed = Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
+    const stakeReceiver = await PublicKey.createWithSeed(base, seed, StakeProgram.programId);
+    instructions.push(SystemProgram.createAccountWithSeed({
+        fromPubkey: base,
+        newAccountPubkey: stakeReceiver,
+        basePubkey: base,
+        seed,
+        lamports,
+        space: StakeProgram.space,
+        programId: StakeProgram.programId,
+    }));
+    return stakeReceiver;
+}
 function __StakeProgram_authorize(params) {
     const tx = StakeProgram.authorize(params);
     // fixed `squads.so` execution error, the clock account is not writable
@@ -2010,7 +2028,7 @@ async function prepareWithdrawOperation(connection, stakePoolAddress, tokenOwner
 /**
  * Creates batched instruction sets for withdrawing stake from a stake pool.
  */
-async function withdrawStakeBatched(connection, stakePoolAddress, tokenOwner, amount, useReserve = false, voteAccountAddress, stakeReceiver, poolTokenAccount, validatorComparator, ephemeralSourceTransferAuthority) {
+async function withdrawStakeBatched(connection, stakePoolAddress, tokenOwner, amount, useReserve = false, voteAccountAddress, stakeReceiver, poolTokenAccount, validatorComparator, ephemeralSourceTransferAuthority, seedStakeReceiver = false) {
     var _c, _d;
     const { stakePool, poolTokenAccount: finalPoolTokenAccount, stakeAccountRentExemption, withdrawAuthority, stakeReceiverAccount, withdrawAccounts, } = await prepareWithdrawOperation(connection, stakePoolAddress, tokenOwner, amount, useReserve, voteAccountAddress, stakeReceiver, poolTokenAccount, validatorComparator);
     const instructionSet = [];
@@ -2044,10 +2062,15 @@ async function withdrawStakeBatched(connection, stakePoolAddress, tokenOwner, am
         console.info(infoMsg);
         let stakeToReceive;
         if (!stakeReceiver || (stakeReceiverAccount && stakeReceiverAccount.type === 'delegated')) {
-            const stakeKeypair = newStakeAccount(tokenOwner, instructions, stakeAccountRentExemption);
-            signers.push(stakeKeypair);
+            if (seedStakeReceiver) {
+                stakeToReceive = await newStakeAccountWithSeed(tokenOwner, instructions, stakeAccountRentExemption);
+            }
+            else {
+                const stakeKeypair = newStakeAccount(tokenOwner, instructions, stakeAccountRentExemption);
+                signers.push(stakeKeypair);
+                stakeToReceive = stakeKeypair.publicKey;
+            }
             totalRentFreeBalances += stakeAccountRentExemption;
-            stakeToReceive = stakeKeypair.publicKey;
             console.info(`Creating an account to receive stake ${stakeToReceive.toBase58()}`);
         }
         else {

@@ -27,6 +27,7 @@ import {
   getValidatorListAccount,
   lamportsToSol,
   newStakeAccount,
+  newStakeAccountWithSeed,
   prepareWithdrawAccounts,
   solToLamports,
 } from './utils';
@@ -514,6 +515,7 @@ export async function withdrawStakeBatched(
   poolTokenAccount?: PublicKey,
   validatorComparator?: (_a: ValidatorAccount, _b: ValidatorAccount) => number,
   ephemeralSourceTransferAuthority?: PublicKey,
+  seedStakeReceiver = false,
 ) {
   const {
     stakePool,
@@ -581,10 +583,18 @@ export async function withdrawStakeBatched(
     let stakeToReceive: PublicKey;
 
     if (!stakeReceiver || (stakeReceiverAccount && stakeReceiverAccount.type === 'delegated')) {
-      const stakeKeypair = newStakeAccount(tokenOwner, instructions, stakeAccountRentExemption);
-      signers.push(stakeKeypair);
+      if (seedStakeReceiver) {
+        stakeToReceive = await newStakeAccountWithSeed(
+          tokenOwner,
+          instructions,
+          stakeAccountRentExemption,
+        );
+      } else {
+        const stakeKeypair = newStakeAccount(tokenOwner, instructions, stakeAccountRentExemption);
+        signers.push(stakeKeypair);
+        stakeToReceive = stakeKeypair.publicKey;
+      }
       totalRentFreeBalances += stakeAccountRentExemption;
-      stakeToReceive = stakeKeypair.publicKey;
       console.info(`Creating an account to receive stake ${stakeToReceive.toBase58()}`);
     } else {
       stakeToReceive = stakeReceiver;

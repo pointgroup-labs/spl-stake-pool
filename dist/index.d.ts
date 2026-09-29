@@ -63,7 +63,7 @@ export declare function depositSol(connection: Connection, stakePoolAddress: Pub
 /**
  * Creates batched instruction sets for withdrawing stake from a stake pool.
  */
-export declare function withdrawStakeBatched(connection: Connection, stakePoolAddress: PublicKey, tokenOwner: PublicKey, amount: number, useReserve?: boolean, voteAccountAddress?: PublicKey, stakeReceiver?: PublicKey, poolTokenAccount?: PublicKey, validatorComparator?: (_a: ValidatorAccount, _b: ValidatorAccount) => number, ephemeralSourceTransferAuthority?: PublicKey): Promise<{
+export declare function withdrawStakeBatched(connection: Connection, stakePoolAddress: PublicKey, tokenOwner: PublicKey, amount: number, useReserve?: boolean, voteAccountAddress?: PublicKey, stakeReceiver?: PublicKey, poolTokenAccount?: PublicKey, validatorComparator?: (_a: ValidatorAccount, _b: ValidatorAccount) => number, ephemeralSourceTransferAuthority?: PublicKey, seedStakeReceiver?: boolean): Promise<{
     instructionSet: TransactionInstruction[][];
     signerSet: Signer[][];
     totalRentFreeBalances: number;

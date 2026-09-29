@@ -40,4 +40,9 @@ export declare function calcPoolTokensForDeposit(stakePool: StakePool, stakeLamp
  */
 export declare function calcLamportsWithdrawAmount(stakePool: StakePool, poolTokens: BN): BN;
 export declare function newStakeAccount(feePayer: PublicKey, instructions: TransactionInstruction[], lamports: number): Keypair;
+/**
+ * Like `newStakeAccount`, but derives the address from `base` with a random seed,
+ * so the only required signer is `base` itself (no ephemeral keypair).
+ */
+export declare function newStakeAccountWithSeed(base: PublicKey, instructions: TransactionInstruction[], lamports: number): Promise<PublicKey>;
 export declare function __StakeProgram_authorize(params: AuthorizeStakeParams): Transaction;

@@ -276,6 +276,35 @@ export function newStakeAccount(
   return stakeReceiverKeypair;
 }
 
+/**
+ * Like `newStakeAccount`, but derives the address from `base` with a random seed,
+ * so the only required signer is `base` itself (no ephemeral keypair).
+ */
+export async function newStakeAccountWithSeed(
+  base: PublicKey,
+  instructions: TransactionInstruction[],
+  lamports: number,
+): Promise<PublicKey> {
+  const seed = Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)), (b) =>
+    b.toString(16).padStart(2, '0'),
+  ).join('');
+  const stakeReceiver = await PublicKey.createWithSeed(base, seed, StakeProgram.programId);
+
+  instructions.push(
+    SystemProgram.createAccountWithSeed({
+      fromPubkey: base,
+      newAccountPubkey: stakeReceiver,
+      basePubkey: base,
+      seed,
+      lamports,
+      space: StakeProgram.space,
+      programId: StakeProgram.programId,
+    }),
+  );
+
+  return stakeReceiver;
+}
+
 export function __StakeProgram_authorize(params: AuthorizeStakeParams): Transaction {
   const tx = StakeProgram.authorize(params);
 
